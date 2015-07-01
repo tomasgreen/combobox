@@ -1,0 +1,25 @@
+{
+	"name": "combobox",
+	"version": "0.1.0",
+	"private": true,
+	"author": "Tomas Green",
+	"license": "MIT",
+	"dependencies": {
+		"bytes": "*",
+		"express": "*",
+		"moment": "*",
+		"morgan": "*",
+		"colors": "*",
+		"uuid": "*",
+		"yargs": "*",
+		"gulp": "*",
+		"gulp-postcss": "*",
+		"gulp-rename": "*",
+		"gulp-less": "*",
+		"gulp-concat": "*",
+		"gulp-minify-css": "*",
+		"gulp-streamify": "*",
+		"gulp-uglify": "*",
+		"gulp-autoprefixer": "*"
+	}
+}

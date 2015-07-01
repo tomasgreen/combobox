@@ -1,0 +1,55 @@
+@shade1: #468966;
+
+.btn {
+	cursor: pointer;
+	-webkit-tap-highlight-color: transparent;
+	text-decoration: none;
+	display: inline-block;
+	padding: 10px 15px;
+	font-weight: normal;
+	user-select: none;
+	background-color: #ffffff;
+	border: 1px solid #dddddd;
+	border-radius: 5px;
+	margin: 0;
+}
+.btn[disabled] {
+	opacity: 0.5;
+	cursor: default;
+}
+.btn:not([disabled]):hover {
+	text-decoration: none;
+	background-color: #eeeeee;
+	border: 1px solid #cccccc;
+}
+.btn:not([disabled]):active {
+	background-color: #cccccc;
+	border: 1px solid #bbbbbb;
+}
+.btn:active,.btn:focus,.btn:focus:active {
+	-webkit-appearance: none;
+	outline: none;
+}
+.btn:not([disabled]):active,.btn:not([disabled]):focus{
+	box-shadow: 0px 0px 4px 0px rgba(100, 100, 100, 0.4);
+}
+
+.create-btn (@name: 'btn'; @color: #eeeeee) {
+	.@{name} {
+		color: contrast(@color);
+		background-color:  @color;
+		border: 1px solid darken(@color, 5%)
+	}
+	.@{name}:not([disabled]):active,.@{name}:not([disabled]):focus {
+		box-shadow: 0px 0px 4px 0px darken(@color, 10%);
+	}
+	.@{name}:not([disabled]):hover {
+		background-color: darken(@color, 10%);
+		border: 1px solid darken(@color, 20%);
+	}
+	.@{name}:not([disabled]):active {
+		background-color: darken(@color, 15%);
+		border: 1px solid darken(@color, 25%);
+	}
+}
+.create-btn(btn-green; @shade1);
