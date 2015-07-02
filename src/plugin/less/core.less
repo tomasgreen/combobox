@@ -1,13 +1,5 @@
 .combobox {
-	box-sizing: border-box;
-	width: 100%;
-	box-sizing: border-box;
-	border: 1px solid #eee;
-	padding: 4px 6px 6px 6px;
-	border-radius: 6px;
-	overflow: hidden;
-	outline: none;
-	cursor: text;	
+	position: relative;
 	.combobox-temp {
 		white-space: pre;
 		width: auto;
@@ -18,40 +10,71 @@
 	}
 	.combobox-input-container {
 		position: relative;
-		.combobox-input {
-			-webkit-appearance: none;
-			box-sizing: border-box;
-			border: none;
-			padding: 2px 0px;
-			margin: 0;
-			overflow: visible;
-			border-radius: 0;
-			min-width: 4px;
-			width: 4px;
-			max-width: 100%;
-			display: inline-block;
-			outline: none;
-			margin-top: 2px;
+		box-sizing: border-box;
+		width: 100%;
+		border: 1px solid #eee;
+		padding: 4px 6px 6px 6px;
+		border-radius: 6px;
+		overflow: visible;
+		outline: none;
+		cursor: text;
+		z-index: 2;	
+		background-color: #fff;
+	}
+	.combobox-input {
+		-webkit-appearance: none;
+		box-sizing: border-box;
+		border: none;
+		padding: 2px 0px;
+		margin: 0;
+		overflow: visible;
+		border-radius: 0;
+		min-width: 4px;
+		width: 4px;
+		max-width: 100%;
+		display: inline-block;
+		outline: none;
+		margin-top: 2px;
+	}
+	.combobox-option {
+		display: inline-block;
+		border-radius: 3px;
+		background-color: #eee;
+		margin-right: 2px;
+		margin-top: 2px;
+		padding: 2px 4px;
+	}
+	.combobox-option-focused {
+		background-color: #ddd; 
+	}
+	.combobox-placeholder:before{
+		position: absolute;
+		margin-top: 2px;
+		padding: 2px 0px;
+		content:attr(placeholder);
+		color: #ccc;
+	}
+	.combobox-dropdown {
+		z-index: 1;
+		left: 0;
+		background-color: #fff;
+		bottom: -198px;
+		height: 200px;
+		position: absolute;
+		box-sizing: border-box;
+		width: 100%;
+		border: 1px solid #eee;
+		padding: 4px 6px 6px 6px;
+		border-radius: 0px 0px 6px 6px;
+		display: none;
+		box-shadow: 0px 1px 1px 0px rgba(0, 0, 0, 0.15);
+	}
+	&.combobox-dropdown-visible {
+		.combobox-dropdown {
+			display: block;
 		}
-		.combobox-option {
-			display: inline-block;
-			border-radius: 3px;
-			background-color: #eee;
-			margin-right: 2px;
-			margin-top: 2px;
-			padding: 2px 4px;
-			&.combobox-option-focused {
-				background-color: #ddd; 
-			}
-		}
-		
-		&.combobox-placeholder:before{
-			position: absolute;
-			margin-top: 2px;
-			padding: 2px 0px;
-			content:attr(placeholder);
-			color: #ccc;
+		.combobox-input-container {
+			border-radius: 6px 6px 0px 0px;
 		}
 	}
-	
 }
