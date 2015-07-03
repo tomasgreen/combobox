@@ -1,12 +1,6 @@
-# jsplugin-startkit
-
-```bash
-cp . /my/new/project/folder
-cd /my/new/project/folder
-npm install
-npm install -g gulp
-gulp
-```
+# combobox
 
 # todo
 - [ ] break the plugin into different classes, one for select-boxes and one for the other types?
+- [ ] add scoring for search-results
+- [ ] come up with a clever name

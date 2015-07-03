@@ -5,8 +5,28 @@
 @import "buttons";
 @import "animations";
 
-body {
 
+header {
+	border: none;
+	padding: 20px;
+}
+nav {
+	box-sizing: border-box;
+	padding: 20px;
+	background-color: @navy;
+	color: #fff;
+	z-index: 9999;
+	top: 0px;
+	left: 0px;
+	width: 100%;
+}
+.nav-fixed {
+	position: fixed;
+}
+body {
+	height: 200vh;
+	margin: 0px;
+	padding: 0px;
 }
 body,input,button {
 	font-family: 'Helvetica Neue', 'Open Sans', 'Helvetica', 'Arial', sans-serif;
@@ -14,6 +34,8 @@ body,input,button {
 	font-weight: 300;
 }
 .site {
-	margin: 50px auto;
-	width: 300px;
+	box-sizing: border-box;
+	margin: 0px auto;
+	padding: 20px;
+	width: 400px;
 }
