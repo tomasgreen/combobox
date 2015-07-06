@@ -295,13 +295,14 @@ var countries = [
 				document.body.style.paddingTop = 'inherit';
 			}
 		});
-	}
+	};
 }).call(this);
 
 (function () {
 	'use strict';
 
 	document.addEventListener('DOMContentLoaded', function () {
+        console.log(navigator);
 		var demo1 = document.querySelector('#demo1');
 		var html = '';
 		for(var c in countries) {
@@ -309,7 +310,7 @@ var countries = [
 			html += '<option>'+ country.name + '</option>';
 		}
 		demo1.innerHTML = html;
-		var combo = ComboBox('#demo1');
+		var combo = new ComboBox('#demo1');
 		combo.on('willadd',function(value){
 			return value != 'test';
 		});
@@ -322,7 +323,7 @@ var countries = [
 		combo.on('didremove',function(value){
 			console.log('removed "'+value+'"');
 		});
-		stickyHeader(document.getElementById('nav'),'nav-fixed');
+		/*stickyHeader(document.getElementById('nav'),'nav-fixed');*/
 		/*var combo2 = ComboBox('#demo2');
 		combo2.focus();*/
 	});
