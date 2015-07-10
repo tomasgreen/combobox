@@ -330,7 +330,7 @@ nav {
   position: fixed;
 }
 body {
-  height: 200vh;
+  max-height: 200vh;
   margin: 0px;
   padding: 0px;
 }
@@ -345,5 +345,5 @@ button {
   box-sizing: border-box;
   margin: 0px auto;
   padding: 20px;
-  width: 400px;
+  max-width: 400px;
 }

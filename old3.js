@@ -1,21 +1,6 @@
 (function () {
 	'use strict';
 
-	function _getSelection(input) {
-		var result = {};
-		if ('selectionStart' in input) {
-			result.start = input.selectionStart;
-			result.length = input.selectionEnd - result.start;
-		} else if (document.selection) {
-			input.focus();
-			var sel = document.selection.createRange();
-			var selLen = document.selection.createRange().text.length;
-			sel.moveStart('character', -input.value.length);
-			result.start = sel.text.length - selLen;
-			result.length = selLen;
-		}
-		return result;
-	}
 	var _keyCodes = {
 		leftArrow: 37,
 		rightArrow: 39,
@@ -40,6 +25,11 @@
 		return _hasParent(el.parentNode,p);
 	}
 
+	function _toElement(html) {
+		var a = document.createElement('div');
+		a.innerHTML = html;
+		return a.firstChild;
+	}
 	function _isString(obj) {
 		return (typeof obj === 'string');
 	}
@@ -62,6 +52,35 @@
 		_each(els, function (el) {
 			var ev = events.split(' ');
 			for (var e in ev) el.removeEventListener(ev[e], func);
+		});
+	}
+
+	function _stopEventPropagation(e) {
+		if (typeof e.stopPropagation === 'function') {
+			e.stopPropagation();
+			e.preventDefault();
+		} else if (window.event && window.event.hasOwnProperty('cancelBubble')) {
+			window.event.cancelBubble = true;
+		}
+	}
+
+	function _tapOn(el, func) {
+		if (el.ontouchstart === undefined) {
+			_on(el, 'click', func);
+			return;
+		}
+		var t = false;
+		_on(el, 'touchstart', function(ev) {
+			t = true;
+		});
+		_on(el, 'touchend', function(ev) {
+			if (t) {
+				func(ev);
+				_stopEventPropagation(ev);
+			}
+		});
+		_on(el, 'touchcancel touchleave touchmove', function(ev) {
+			t = false;
 		});
 	}
 
@@ -147,19 +166,6 @@
 	############## COMBOBOX ###############
 	************************************ */
 
-	var events = {
-		willadd: 'onWillAdd',
-		willremove: 'onWillRemove',
-		willopen: 'onWillOpen',
-		willclose: 'onWillClose',
-		willload: 'onWillLoad',
-		didadd: 'onDidAdd',
-		didremove: 'onDidRemove',
-		didopen: 'onDidOpen',
-		didclose: 'onDidClose',
-		didload: 'onDidLoad'
-	};
-
 	var defaults = {
 		options: null,
 		values: null,
@@ -170,26 +176,12 @@
 		closeAfterSelect: true,
 		selectOnTab: true,
 		maxSelected: 0,
-		maxSuggestions: Infinity,
-
-		onWillAdd: null,
-		onWillRemove: null,
-		onWillOpen: null,
-		onWillClose: null,
-		onWillLoad: null,
-
-		onDidAdd: null,
-		onDidRemove: null,
-		onDidOpen: null,
-		onDidClose: null,
-		onDidLoad: null
+		maxSuggestions: Infinity
 	};
 	var Base = function (el, options) {
 		this.opt = _setOptions(options);
-		if(_isString(el)) this.el = document.querySelector(el);
-		else this.el = el;
-
-		if(!el) return;
+		this.el = el;
+		if(!this.el) return;
 
 		this.el.style.display = 'none';
 
@@ -214,6 +206,8 @@
 
 		this.inputEl = _createElement('input.combobox-input', null, this.inputContainer);
 		this.completionEl = _createElement('div.combobox-input-completion');
+		this.addEl = _createElement('div.combobox-add');
+
 		this.tempEl = _createElement('div.combobox-temp', null, this.container);
 		this.tempEl.style.letterSpacing = this.inputEl.style.letterSpacing;
 		this.tempEl.style.fontSize = this.inputEl.style.fontSize;
@@ -223,23 +217,28 @@
 
 		_attr(this.inputContainer, 'placeholder', _attr(this.el, 'placeholder'));
 
-		_on(this.inputContainer, 'focus click', this.focus.bind(this));
+		_on(this.inputContainer, 'focus', this.focus.bind(this));
+		_tapOn(this.inputContainer, this.focus.bind(this));
 		_on(this.inputEl, 'focus', this.focus.bind(this));
+		_on(this.inputEl, 'blur', this.blur.bind(this));
 		_on(this.inputEl, 'input', this.onInput.bind(this));
 		_on(this.inputEl, 'keydown', this.onKeyDown.bind(this));
-		_on(document.documentElement,'click',this.onClick.bind(this));
+		_tapOn(document.documentElement,this.onClick.bind(this));
 		_on(document.documentElement,'mouseover',this.onHover.bind(this));
 
 		this.togglePlaceholder();
 		this.resetHeight();
+		this.el.combobox = this;
 	};
 	Base.prototype.onClick = function(ev){
+		console.log(ev);
 		if(!_hasParent(ev.srcElement,this.container)) this.blur();
 		else if(_hasParent(ev.srcElement,this.dropdown)) this.onDropdownOptionClick(ev);
+		/*else if(_hasClass(ev.srcElement,'combobox-value')) _toggleClass(ev.srcElement, 'combobox-value-focused');*/
 	};
 	Base.prototype.onHover = function(ev){
-		if(!_hasParent(ev.srcElement,this.container)) return;
-		else if(_hasClass(ev.srcElement,'combobox-option')) this.setDropdownOptionFocus(ev.srcElement);
+		if(!_hasParent(ev.srcElement,this.container) || !_hasClass(ev.srcElement,'combobox-add') || !_hasClass(ev.srcElement,'combobox-option')) return;
+		this.toggleOptionFocus(ev.srcElement);
 	};
 	Base.prototype.onInput = function(){
 		this.updateInputSize();
@@ -262,10 +261,9 @@
 	};
 	Base.prototype.onKeyEnter = function (ev) {
 		var value = this.inputEl.value = _trim(this.getInputValue());
-		var hasValue = (this.values.indexOf(value) >= 0);
 		var f = this.dropdown.querySelector('.combobox-option-focused');
 		if (f && this.addValue(_attr(f,'data-value'))) this.resetInput();
-		else if (hasValue || this.addValue(value)) this.resetInput();
+		else if ((this.values.indexOf(value) >= 0) || this.addValue(value)) this.resetInput();
 	};
 	Base.prototype.onKeyBackspace = function (ev) {
 		if (this.getInputValue().length !== 0 && (this.inputEl.selectionStart > 0 || this.inputEl.selectionStart != this.inputEl.selectionEnd)) return;
@@ -274,12 +272,9 @@
 			return;
 		}
 		if(!this.inputEl.previousSibling) return;
-		var value = this.inputEl.previousSibling.textContent;
-		if (this.opt.onWillRemove && this.opt.onWillRemove(value) === false) return;
-		this.removeValue(value);
-		this.inputEl.parentNode.removeChild(this.inputEl.previousSibling);
-		if (this.opt.onDidRemove) this.opt.onDidRemove(value);
+		this.removeValue(_attr(this.inputEl.previousSibling,'data-value'));
 		this.inputEl.focus();
+		this.updateInputSize();
 		this.updateDropdown(true);
 	};
 	Base.prototype.onKeyLeftArrow = function (ev) {
@@ -288,7 +283,7 @@
 			if(this.inputEl.previousSibling) _toggleClass(this.inputEl.previousSibling, 'combobox-value-focused');
 		}
 		else this.removeFocus();
-		if (this.inputEl.previousSibling) this.inputEl.parentNode.insertBefore(this.inputEl, this.inputEl.previousSibling);
+		if (this.inputEl.previousSibling) this.inputContainer.insertBefore(this.inputEl, this.inputEl.previousSibling);
 		this.inputEl.focus();
 	};
 	Base.prototype.onKeyRightArrow = function (ev) {
@@ -297,30 +292,26 @@
 			if(this.inputEl.nextSibling) _toggleClass(this.inputEl.nextSibling, 'combobox-value-focused');
 		}
 		else this.removeFocus();
-		if (this.inputEl.nextSibling) this.inputEl.parentNode.insertBefore(this.inputEl, this.inputEl.nextSibling.nextSibling);
-		else this.inputEl.parentNode.appendChild(this.inputEl);
+		if (this.inputEl.nextSibling) this.inputContainer.insertBefore(this.inputEl, this.inputEl.nextSibling.nextSibling);
+		else this.inputContainer.appendChild(this.inputEl);
 		this.inputEl.focus();
 	};
 	Base.prototype.onKeyUpArrow = function (ev) {
-		this.moveDropdownOptionFocus('prev');
+		this.toggleOptionFocus('prev');
 		ev.preventDefault();
 	};
 	Base.prototype.onKeyDownArrow = function (ev) {
-		this.moveDropdownOptionFocus('next');
+		this.toggleOptionFocus('next');
 		ev.preventDefault();
 	};
 	Base.prototype.onDropdownOptionClick = function(ev){
 		var el = ev.srcElement;
-		if(!_hasClass(el,'combobox-option')) return;
+		if(!(_hasClass(el,'combobox-option') || _hasClass(el,'combobox-add'))) return;
 		if(this.addValue(_attr(el,'data-value'))) {
 			this.resetInput();
 			this.updateDropdown();
 			this.inputEl.focus();
 		}
-	};
-	Base.prototype.updateInputSize = function () {
-		this.tempEl.innerHTML = this.getInputValue();
-		this.inputEl.style.width = this.tempEl.offsetWidth + 4 + 'px';
 	};
 	Base.prototype.toggleCompletion = function () {
 		var f = this.dropdown.querySelector('.combobox-option-focused');
@@ -332,61 +323,48 @@
 		}
 		else {
 			this.completionEl.textContent = s.substring(v.length);
-			if(this.inputEl.nextSibling) this.inputEl.parentNode.insertBefore(this.completionEl, this.inputEl.nextSibling);
-			else this.inputEl.parentNode.appendChild(this.completionEl);
+			if(this.inputEl.nextSibling) this.inputContainer.insertBefore(this.completionEl, this.inputEl.nextSibling);
+			else this.inputContainer.appendChild(this.completionEl);
 		}
 	};
 	Base.prototype.togglePlaceholder = function () {
-		if (!_attr(this.inputContainer,'data-completion') && this.inputEl.parentNode.childNodes.length === 1 && this.getInputValue().length === 0) _addClass(this.inputEl.parentNode, 'combobox-placeholder');
-		else _removeClass(this.inputEl.parentNode, 'combobox-placeholder');
+		if (!_attr(this.inputContainer,'data-completion') && this.inputContainer.childNodes.length === 1 && this.getInputValue().length === 0) _addClass(this.inputContainer, 'combobox-placeholder');
+		else _removeClass(this.inputContainer, 'combobox-placeholder');
 	};
-	Base.prototype.removeFocus = function (){
-		_removeClass(this.inputEl.parentNode.querySelectorAll('.combobox-value-focused'),'combobox-value-focused');
-	};
-	Base.prototype.hasFocused = function(){
-		return (this.inputEl.parentNode.querySelectorAll('.combobox-value-focused').length > 0);
-	};
-	Base.prototype.removeFocused = function (){
-		_each(this.inputEl.parentNode.querySelectorAll('.combobox-value-focused'), function(i){
-			this.removeValue(i.textContent);
-			i.parentNode.removeChild(i);
-		}.bind(this));
-		this.updateDropdown();
-	};
-	Base.prototype.clearDropdownOptionFocus = function(){
-		var el = this.dropdown.querySelector('.combobox-option-focused');
-		if(el && el.style.display == 'none') _removeClass(el,'combobox-option-focused');
-	};
-	Base.prototype.setDropdownOptionFocus = function(el){
+	Base.prototype.toggleOptionFocus = function(){
 		var f = this.dropdown.querySelector('.combobox-option-focused');
-		if(f) _removeClass(f,'combobox-option-focused');
-		if(el) _addClass(el,'combobox-option-focused');
-	};
-	Base.prototype.moveDropdownOptionFocus = function(direction){
+		if (arguments[0] && arguments[0].nodeName) {
+			if(f) _removeClass(f,'combobox-option-focused');
+			_addClass(arguments[0],'combobox-option-focused');
+			return;
+		}
 		var els = this.dropdown.querySelectorAll('.combobox-option');
-		if(!els) return;
-		var el = this.dropdown.querySelector('.combobox-option-focused');
-		if(!el) {
+
+		if(!els || els.length === 0) {
+			if(this.opt.create) _addClass(this.addEl,'combobox-option-focused');
+			return;
+		} else if(this.opt.create) _removeClass(this.addEl,'combobox-option-focused');
+
+		if(!f) {
 			_addClass(els[0],'combobox-option-focused');
 			return;
 		}
+		if(!arguments[0]) return;
 		var s;
-		if(direction == 'next' && el.nextSibling) s = el.nextSibling;
-		else if(direction == 'prev' && el.previousSibling) s = el.previousSibling;
+		if(arguments[0] == 'next') s = f.nextSibling;
+		else if(arguments[0] == 'prev') s = f.previousSibling;
 		if(!s) return;
 		s.scrollIntoView(false);
 		_addClass(s,'combobox-option-focused');
-		_removeClass(el,'combobox-option-focused');
+		_removeClass(f,'combobox-option-focused');
 		this.toggleCompletion();
 	};
 	Base.prototype.toggleHighlight = function() {
 		var value = _trim(this.getInputValue());
-		var list = _toArray(this.dropdown.childNodes);
+		var list = _toArray(this.dropdown.querySelectorAll('.combobox-option'));
 		var re = new RegExp(value, 'i');
-		var first;
 	    for (var c = 0; c < list.length; c++) {
 			var e = list[c];
-			if(!first) first = e;
 			var original = _attr(e,'data-value');
 	        if(!value || value.length === 0) {
 				e.innerHTML = original;
@@ -395,19 +373,35 @@
 			var res = re.exec(original);
 			e.innerHTML = original.replace(re,'<span class="combobox-highlight">'+res[0]+'</span>');
 	    }
-		if(first) this.setDropdownOptionFocus(first);
-		else this.clearDropdownOptionFocus();
+	};
+	Base.prototype.toggleAdd = function(){
+		var value = _trim(this.getInputValue());
+		if((value.length === 0)) {
+			this.addEl.textContent = '';
+			_attr(this.addEl,'data-value','');
+		} else {
+			this.addEl.textContent = 'Add ' + value;
+			_attr(this.addEl,'data-value',value);
+		}
 	};
 	Base.prototype.populateDropdown = function (){
 		var value = this.getInputValue();
 		var arr = this.getSuggestions(value);
 		this.dropdown.innerHTML = '';
+		if(this.opt.create) this.dropdown.appendChild(this.addEl);
 		for(var i in arr){
 			if(i > this.opt.maxSuggestions) break;
 			var v = arr[i];
-			_createElement('div.combobox-option', {
-				'data-value': v
-			},this.dropdown,v);
+			var el;
+			if(this.onRenderOption) {
+				el = this.onRenderOption(v);
+				if(_isString(el)) el = _toElement(el);
+			} else {
+				el = _createElement('div.combobox-option');
+				el.textContent = v;
+			}
+			_attr(el, 'data-value', v);
+			this.dropdown.appendChild(el);
 		}
 	};
 	Base.prototype.getSuggestions = function(value) {
@@ -434,6 +428,8 @@
 		}
 		this.lastValue = value;
 		this.toggleCompletion();
+		this.toggleAdd();
+		this.toggleOptionFocus();
 	};
 	Base.prototype.showDropdown = function() {
 		if(this.dropdown.childNodes.length > 0) _addClass(this.container,'combobox-dropdown-visible');
@@ -441,16 +437,7 @@
 	};
 	Base.prototype.hideDropdown = function() {
 		_removeClass(this.container,'combobox-dropdown-visible');
-		this.setDropdownOptionFocus();
-	};
-	Base.prototype.removeValue = function(value){
-		var i = this.values.indexOf(value);
-		if(i != -1) {
-			this.values.splice(i,1);
-			this.updateElementValue();
-			return true;
-		}
-		return false;
+		this.toggleOptionFocus();
 	};
 	Base.prototype.addValue = function (value) {
 		if (value.length === 0) return false;
@@ -458,15 +445,23 @@
 		var hasOption = (this.items.indexOf(value) >= 0);
 		var hasValue = (this.values.indexOf(value) >= 0);
 
-		if (hasValue || (!hasOption && !this.opt.create) || (this.opt.onWillAdd && this.opt.onWillAdd(value) === false)) return false;
+		if (hasValue || (!hasOption && !this.opt.create) || (this.onWillAdd && this.onWillAdd(value) === false)) return false;
 
 		this.values.push(value);
-		if(!hasOption) this.items.push(value);
+		/*if(!hasOption) this.items.push(value);*/
+		var el;
+		if(this.onRenderValue) {
+			el = this.onRenderValue(value);
+			if(_isString(el)) el = _toElement(el);
+		} else {
+			el = _createElement('div.combobox-value');
+			el.textContent = value;
+		}
+		_attr(el, 'data-value', value);
 
-		var n = _createElement('div.combobox-value', null, null, value);
-		this.inputEl.parentNode.insertBefore(n, this.inputEl);
+		this.inputContainer.insertBefore(el, this.inputEl);
 
-		if (this.opt.onDidAdd) this.opt.onDidAdd(value);
+		if (this.onDidAdd) this.onDidAdd(value);
 		this.updateDropdown(true);
 		this.resetHeight();
 		this.updateElementValue();
@@ -484,6 +479,10 @@
 		}
 		else if(tn == 'input') this.el.value = this.values.join(this.opt.delimiter);
 		else if(tn == 'textarea') this.el.innerHTML = this.values.join(this.opt.delimiter);
+	};
+	Base.prototype.updateInputSize = function () {
+		this.tempEl.innerHTML = this.getInputValue();
+		this.inputEl.style.width = this.tempEl.offsetWidth + 4 + 'px';
 	};
 	Base.prototype.focus = function(){
 		this.inputEl.focus();
@@ -503,6 +502,28 @@
 	Base.prototype.getInputValue = function() {
 		return this.inputEl.value;
 	};
+	Base.prototype.hasFocused = function(){
+		return (this.inputContainer.querySelectorAll('.combobox-value-focused').length > 0);
+	};
+	Base.prototype.removeFocus = function (){
+		_removeClass(this.inputContainer.querySelectorAll('.combobox-value-focused'),'combobox-value-focused');
+	};
+	Base.prototype.removeFocused = function (){
+		_each(this.inputContainer.querySelectorAll('.combobox-value-focused'), function(i){
+			this.removeValue(_attr(i,'data-value'));
+		}.bind(this));
+		this.updateDropdown();
+	};
+	Base.prototype.removeValue = function(value){
+		if (value.length === 0 || (this.onWillRemove && !this.onWillRemove(value))) return false;
+		var i = this.values.indexOf(value);
+		if(i != -1) this.values.splice(i,1);
+		var el = this.inputContainer.querySelector('[data-value="'+value+'"]');
+		if(el) this.inputContainer.removeChild(el);
+		if(this.onDidRemove) this.onDidRemove(value);
+		this.updateElementValue();
+		return true;
+	};
 	Base.prototype.resetHeight = function(){
 		var r = this.inputContainer.getBoundingClientRect();
 		this.container.style.maxHeight = r.height + 'px';
@@ -512,11 +533,17 @@
 		this.updateInputSize();
 		this.updateDropdown(true);
 	};
-	Base.prototype.on = function(name,cb){
-		if(events[name]) this.opt[events[name]] = cb;
-	};
+
+	var instances = [];
 	this.ComboBox = function (el, options) {
-		var instance = new Base(el, options);
+		var e;
+		if(_isString(el)) e = document.querySelector(el);
+		else e = el;
+		for(var i in instances){
+			if(instances[i].el.isSameNode(e)) return instances[i];
+		}
+		var instance = new Base(e, options);
+		instances.push(instance);
 		return instance;
 	};
 

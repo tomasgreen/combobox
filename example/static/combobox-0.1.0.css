@@ -52,6 +52,7 @@
   margin-right: 2px;
   margin-top: 2px;
   padding: 2px 3px;
+  cursor: pointer;
 }
 .combobox .combobox-value-focused {
   background-color: #0074D9;
@@ -79,7 +80,6 @@
   box-shadow: 0px 1px 1px 0px rgba(0, 0, 0, 0.1);
 }
 .combobox .combobox-option {
-  display: hidden;
   padding: 6px;
   cursor: pointer;
   border-bottom: 1px solid #f8f8f8;
@@ -87,10 +87,19 @@
 .combobox .combobox-option-focused {
   background-color: #f8f8f8;
 }
+.combobox .combobox-add {
+  color: #999;
+  padding: 6px;
+  cursor: pointer;
+  border-bottom: 1px solid #f8f8f8;
+}
+.combobox .combobox-add:empty {
+  display: none;
+}
 .combobox .combobox-highlight {
   background-color: yellow;
 }
-.combobox .combobox-option:last-child {
+.combobox .combobox-dropdown div:last-child {
   border-bottom: none;
 }
 .combobox.combobox-dropdown-visible .combobox-dropdown {

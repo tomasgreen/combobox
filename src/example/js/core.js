@@ -1,6 +1,6 @@
 var countries = [
+    {name: 'Åland Islands', code: 'AX'},
   {name: 'Afghanistan', code: 'AF'},
-  {name: 'Åland Islands', code: 'AX'},
   {name: 'Albania', code: 'AL'},
   {name: 'Algeria', code: 'DZ'},
   {name: 'American Samoa', code: 'AS'},
@@ -302,7 +302,6 @@ var countries = [
 	'use strict';
 
 	document.addEventListener('DOMContentLoaded', function () {
-        console.log(navigator);
 		var demo1 = document.querySelector('#demo1');
 		var html = '';
 		for(var c in countries) {
@@ -310,19 +309,26 @@ var countries = [
 			html += '<option>'+ country.name + '</option>';
 		}
 		demo1.innerHTML = html;
-		var combo = new ComboBox('#demo1');
-		combo.on('willadd',function(value){
+		var combo = ComboBox('#demo1');
+        
+		combo.onWillAdd = function(value) {
 			return value != 'test';
-		});
-		combo.on('didadd',function(value){
+		};
+		combo.onDidAdd = function(value) {
 			console.log('added "'+value+'"');
-		});
-		combo.on('willremove',function(value){
+		};
+		combo.onWillRemove = function(value) {
 			return value != 'stuck';
-		});
-		combo.on('didremove',function(value){
+		};
+		combo.onDidRemove = function(value) {
 			console.log('removed "'+value+'"');
-		});
+		};
+        combo.onRenderValue = function(value) {
+			return '<div class="combobox-value">' + value + '</div>';
+		};
+        combo.onRenderOption = function(value) {
+			return '<div class="combobox-option">' + value + '</div>';
+		};
 		/*stickyHeader(document.getElementById('nav'),'nav-fixed');*/
 		/*var combo2 = ComboBox('#demo2');
 		combo2.focus();*/
